@@ -3,6 +3,6 @@ import { test01 } from "./controllers/test01";
 
 const routes = Router();
 
-routes.route("/").get(test01);
+routes.route("/test01").get(test01);
 
 export default routes;
