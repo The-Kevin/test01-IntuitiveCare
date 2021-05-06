@@ -9,6 +9,7 @@ export const test01 = async (req: Request, res: Response) => {
   const url =
     "http://www.ans.gov.br/prestadores/tiss-troca-de-informacao-de-saude-suplementar";
 
+  const value = [];
   try {
     const { data } = await axios.get(url);
     const $ = cheerio.load(data);
@@ -17,20 +18,33 @@ export const test01 = async (req: Request, res: Response) => {
       .toArray()
       .map((elementPrimary) => $(elementPrimary).attr("href"));
 
+    // ^^ login primary page
+
     const htmlTiss = await axios.get(
       url.substr(0, 21) + queryPrimary.toString()
     );
 
     const $$ = cheerio.load(htmlTiss.data);
-    const tiss: any = $$('a[href$="202103.pdf"]').text();
+    const link = $$('a[class="btn btn-primary btn-sm center-block"]:first');
 
-    /*const file = fs.createWriteStream("./tiss.pdf");
-    const request = http.get(tiss, (response) => {
-      response.pipe(file);
-      console.log("done");
-    });*/
+    const getLinkTiss = $$(link).each((i, href) => {
+      const lastLink = $$(href).attr("href");
+      value.push({ link: lastLink });
+    });
+
+    await axios({
+      method: "get",
+      url: url.substr(0, 21) + value[0]["link"],
+      responseType: "stream",
+    }).then((response) => {
+      response.data.pipe(fs.createWriteStream("./src/archives/tiss.pdf"));
+    });
+    //const request = await axios.get(url.substr(0, 21) + value[0]["link"]);
+    /*const request = http.get(url.substr(0, 21) + value[0]["link"], (response) =>
+      response.pipe(fs.createWriteStream("./src/archives/tiss.pdf"))
+    );*/
   } catch (error) {
     console.log(error);
-    return res.send("error");
+    return res.status(500).send("error");
   }
 };
