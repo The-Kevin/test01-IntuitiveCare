@@ -1,44 +1,34 @@
 import axios from "axios";
+import http from "http";
 import cheerio from "cheerio";
+import fs from "fs";
 
-import { Response } from "express";
+import { Response, Request } from "express";
 
-export const test01 = async (res: Response) => {
+export const test01 = async (req: Request, res: Response) => {
   const url =
     "http://www.ans.gov.br/prestadores/tiss-troca-de-informacao-de-saude-suplementar";
 
   try {
-    axios.get(url).then((responsePrimary) => {
-      const htmlPrimary = responsePrimary.data;
-      const $ = cheerio.load(htmlPrimary);
-      const queryPrimary = $(".alert-icolink:first")
-        .children()
-        .toArray()
-        .map((elementPrimary) => $(elementPrimary).attr("href"));
-      // enter on primary url ^^
+    const { data } = await axios.get(url);
+    const $ = cheerio.load(data);
+    const queryPrimary = $(".alert-icolink:first")
+      .children()
+      .toArray()
+      .map((elementPrimary) => $(elementPrimary).attr("href"));
 
-      axios.get(url.substr(0, 21) + queryPrimary).then((response) => {
-        const html = response.data;
-        const $ = cheerio.load(html);
-        const query = $(".table-responsive");
+    const htmlTiss = await axios.get(
+      url.substr(0, 21) + queryPrimary.toString()
+    );
 
-        query
-          .children()
-          .toArray()
-          .map((element) => console.log(element));
-      });
-    });
+    const $$ = cheerio.load(htmlTiss.data);
+    const tiss: any = $$('a[href$="202103.pdf"]').text();
 
-    /*   axios.get(url.substr(0, 21) + query).then((response) => {
-      const html = response.data;
-      const $ = cheerio.load(html);
-      const query = $(".table-responsive:first")
-        .children()
-        .toArray()
-        .map((element) => $(element).attr("href"));
-      // enter on primary url ^^
+    /*const file = fs.createWriteStream("./tiss.pdf");
+    const request = http.get(tiss, (response) => {
+      response.pipe(file);
+      console.log("done");
     });*/
-    return 0;
   } catch (error) {
     console.log(error);
     return res.send("error");
